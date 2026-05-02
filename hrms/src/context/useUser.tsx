@@ -8,6 +8,7 @@ export interface CurrentUser {
   lastName: string;
   email: string;
   roles: string[];
+  profileImageUrl?: string;
 }
 
 interface UserContextType {

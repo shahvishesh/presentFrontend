@@ -1,4 +1,3 @@
-import axios from "axios";
 import axiosInstance from "./axiosInstance";
 
 export interface CreateJobRequest{
@@ -12,6 +11,27 @@ export interface CreateJobRequest{
     workPlaceType: string;
     reviewerIds: number[];
 }
+
+export const createJobWithJd = async (
+    data: CreateJobRequest,
+    file: File
+): Promise<number> => {
+    const formData = new FormData();
+
+    formData.append(
+        "data",
+        new Blob([JSON.stringify(data)],{
+            type: "application/json",
+        })
+    );
+
+    formData.append("file", file);
+
+    const res = await axiosInstance.post(`/job/create`, formData);
+
+    return res.data;
+};
+
 
 export interface JobResponse{
     id: number;
@@ -130,6 +150,9 @@ export interface JobDetail{
     workPlaceType: string;  
     status: string; 
     reviewerIds: number[];
+    jdId: number;
+
+    fileName: string;
 }
 
 export const updateJob = async(jobId: number, data: UpdateJobRequest): Promise<JobResponse> => {
@@ -143,7 +166,52 @@ export const getJobDetailById = async (id: number): Promise<JobDetail> => {
 
 }
 
+export interface JobResponseWithJd{
+    id: number;
+    title: string;
+    description: string;
+    companyName: string;
+    location: string;
+    minExperience: number;
+    maxExperience: number;
+    jobType: string;
+    workPlaceType: string;  
+    status: string; 
+    jdId: number;
+    fileName: string;
+}
 
+export const getJobWithJdById = async (id: number): Promise<JobResponseWithJd> => {
+    const res = await axiosInstance.get<JobResponseWithJd>(`/job/${id}/job-detail`);
+    return res.data;
+
+}
+
+export const updateJobWithJd = async (
+  jobId: number,
+  data: UpdateJobRequest,
+  file?: File
+): Promise<JobResponse> => {
+  const formData = new FormData();
+
+  formData.append(
+    "data",
+    new Blob([JSON.stringify(data)], {
+      type: "application/json",
+    })
+  );
+
+  if (file) {
+    formData.append("file", file);
+  }
+
+  const res = await axiosInstance.put(
+    `/job/update/${jobId}`,
+    formData
+  );
+
+  return res.data;
+};
 // private long id;
 //     private String employeeName;
 //     private String comment;

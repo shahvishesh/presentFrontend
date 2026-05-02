@@ -20,7 +20,7 @@ export const getSlotDetail = async (slotId: number): Promise<SlotResponse> => {
 }
 
 export const deleteSlotConfiguration = async (slotId: number) => {
-    await axiosInstance.delete(`/slot/${slotId}`);
+    await axiosInstance.delete(`/configure/${slotId}`);
 }
 
 export type RegisterSlot = {
@@ -114,6 +114,8 @@ export type SlotRegistrationResponse= {
     endTime: string;
     maxPlayers: number;
     gameName: string;
+    bookedBy: string;
+    bookedById: number;
 }
 
 export const getActiveSlotRegistrations = async (gameId: number): Promise<SlotRegistrationResponse[]> => {
@@ -150,6 +152,58 @@ export const getGameTabs = async(): Promise<GameTabType[]> => {
     const res = await axiosInstance.get<GameTabType[]>(`/game-interest/tabs`);
     return res.data;
 }
+
+export interface UserSlotStatus {
+    isOnTravel: boolean;
+    isLimitReached: boolean;
+    isRegistered: boolean;
+}
+
+export const getMyStatus = async (slotId: number): Promise<UserSlotStatus> => {
+    const response = await axiosInstance.get(`/slot/${slotId}/my-status`);
+    return response.data;
+};
+
+export interface EmployeeLimit {
+    id: number;
+    name: string;
+}
+
+export interface ParticipantsDto {
+  employeeId: number;
+  name: string;
+  department: string;
+  status: string;
+}
+
+export interface SlotDetailDto {
+  slotId: number;
+  gameName: string;
+  date: string;        
+  startTime: string;   
+  endTime: string;     
+  maxPlayers: number;
+  participants: ParticipantsDto[];
+}
+
+export const getSlotDetails = async (slotId: number): Promise<SlotDetailDto> => {
+  const response = await axiosInstance.get<SlotDetailDto>(`/booking/${slotId}`);
+  return response.data;
+};
+
+
+export type BookingStatus = "UPCOMING" | "CANCELLED" | "COMPLETED";
+
+export const getBookings = async (
+  status: BookingStatus
+): Promise<SlotResponse[]> => {
+  const res = await axiosInstance.get<SlotResponse[]>(
+    `/booking?status=${status}`
+  );
+  return res.data;
+};
+
+
 // private Long slotRegistrationId;
 //     private Long slotId;
 //     private LocalDate date;

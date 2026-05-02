@@ -1,7 +1,7 @@
 //import { useState } from 'react'
 import { useEffect } from 'react';
 import AppRoutes from './AppRoutes'
-import { useUser } from './context/UseUser';
+import { useUser } from './context/useUser';
 import { getCurrentUser } from './api/auth.api';
 //import './App.css'
 

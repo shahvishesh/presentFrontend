@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/Dashboard/DashboardHome";
 import JobLayout from "./pages/job/JobLayout";
@@ -76,12 +78,27 @@ import HRTravelPlans from "./pages/travel-plan/travel-tabs/HRTravelPlans";
 import HRExpenseTravelPlans from "./pages/expense/travel-plan-list/HRExpenseTravelPlans";
 import AdminSignUp from "./pages/auth/AdminSignup";
 import NotFoundPage from "./pages/NotFoundPage";
+import TestUpdateJob from "./pages/job/TestUpdateJob";
+import SlotDetailPage from "./pages/game/SlotDetailPage";
+import BookingPage from "./pages/game/BookingPage";
+import DepartmentList from "./pages/configuration/department/DepartmentList";
+import GameTypeList from "./pages/configuration/game/GameTypeList";
+import TagTypeList from "./pages/configuration/tag/TagTypeList";
+import CategoryTypeList from "./pages/configuration/category/CategoryTypeList";
+import DocumentTypeList from "./pages/configuration/document/DocumentTypeList";
+import ConfigHome from "./pages/configuration/ConfigHome";
+import ConfigLayout from "./pages/configuration/ConfigLayout";
+import AddPostWithPicture from "./pages/social/AddPostWithPicture";
+import EditPostWithPicture from "./pages/social/EditPostWithPicture";
+import UserProfilePage from "./pages/social/UserProfilePage";
 
 export default function AppRoutes(){
     const navigate = useNavigate();
     return(
        <Routes>
         <Route path="/login" element={<Login />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         
         <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -136,6 +153,17 @@ export default function AppRoutes(){
                     <Route path="add" element={<AddEmployee/>}/>
                     
                 </Route>
+
+                <Route path="config" element={<ConfigLayout />}>
+                    <Route index element={<ConfigHome />}/>
+                    <Route path="document" element={<DocumentTypeList />}/>
+                    <Route path="category" element={<CategoryTypeList />}/>
+                    <Route path="tag" element={<TagTypeList />}/>
+                    <Route path="game" element={<GameTypeList />}/>
+                    <Route path="department" element={<DepartmentList />}/>
+                    {/* <Route path="add" element={<AddEmployee/>}/> */}
+                    
+                </Route>
         
                 {/* <Route path="job" element={<JobLayout />}>
                 <Route index element={<JobHome />} />
@@ -183,7 +211,7 @@ export default function AppRoutes(){
                     <Route index element={<JobHome />} />
                     <Route path="list" element={<JobsList />} />
                     <Route path="create" element={<CreateJobWithReviewer />} />
-                    <Route path="update/:jobId" element={<UpdateJob/>}/>
+                    <Route path="update/:jobId" element={<TestUpdateJob/>}/>
                     <Route path=":jobId" element={<JobDetails />} />
                     <Route path="close" element={<DeleteJob />} />
                     <Route path="referral/list" element={<ReferralJobsList />} />
@@ -232,11 +260,12 @@ export default function AppRoutes(){
 
             <Route path="social" element={<SocialLayout/>}>
                     <Route index element={<SocialHome/>}/>
-                    <Route path="create" element={<AddPost/>}/>
+                    <Route path="create" element={<AddPostWithPicture/>}/>
                     <Route path="all" element={<ViewAllPost/>}/>
                     <Route path="post/:postid" element={<PostDetail/>}/>
-                    <Route path="edit/:id" element={<EditPost/>}/>
+                    <Route path="edit/:id" element={<EditPostWithPicture/>}/>
                     <Route path="post/my" element={<UserPostList/>}/>
+                    <Route path="user/:employeeId" element={<UserProfilePage/>}/>
             </Route>
 
             <Route path="game" element={<GameLayout/>}>
@@ -248,12 +277,13 @@ export default function AppRoutes(){
                     <Route path="configure/create" element={<CreateConfiguration/>}/>
                     <Route path="configure/update" element={<AllGameConfiguration/>}/>
                     <Route path="configure/update/:configId" element={<UpdateConfiguration/>}/>
-
+                    <Route path="booking" element={<BookingPage/>}/>
                     <Route path="choose/game" element={<ChooseGame/>}/>
                     <Route path=":gameId/registrations" element={<RegisteredSlot/>}/>
-                    <Route path="slot/booking/cancelled" element={<CancelledBooking/>}/>
+                    {/* <Route path="slot/booking/cancelled" element={<CancelledBooking/>}/>
                     <Route path="slot/booking/completed" element={<CompletedBooking/>}/>
-                    <Route path="slot/booking/upcoming" element={<UpcomingBooking/>}/>
+                    <Route path="slot/booking/upcoming" element={<UpcomingBooking/>}/> */}
+                    <Route path="slot/detail/:slotId" element={<SlotDetailPage/>}/>
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

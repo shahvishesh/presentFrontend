@@ -123,6 +123,18 @@ export default function NewSidebar({ drawerWidth }: SidebarProps) {
                 <ListItemText primary="Users" />
               </ListItemButton>
             </ListItem>
+
+             <ListItem disablePadding>
+              <ListItemButton
+                selected={isSelected("/dashboard/config")}
+                sx={itemSx}
+                onClick={() => navigate("/dashboard/config")}
+              >
+                <ListItemText primary="Configuration" />
+              </ListItemButton>
+            </ListItem>
+
+            
           </>
         )}
  
@@ -184,6 +196,33 @@ export default function NewSidebar({ drawerWidth }: SidebarProps) {
               <ListItemText primary="Notification" />
             </ListItemButton>
           </ListItem>
+
+          <ListItem disablePadding>
+              <ListItemButton 
+                selected={isSelected("/dashboard/job")}
+                sx={itemSx}
+                onClick={() => navigate("/dashboard/job")}>
+                <ListItemText primary="Job" />
+              </ListItemButton>
+            </ListItem>
+
+             <ListItem disablePadding>
+              <ListItemButton 
+              selected={isSelected("/dashboard/game")}
+                sx={itemSx}
+              onClick={() => navigate("/dashboard/game")}>
+                <ListItemText primary="Game" />
+              </ListItemButton>
+            </ListItem>
+
+            <ListItem disablePadding>
+              <ListItemButton 
+              selected={isSelected("/dashboard/social")}
+                sx={itemSx}
+              onClick={() => navigate("/dashboard/social")}>
+                <ListItemText primary="Social" />
+              </ListItemButton>
+            </ListItem>
         </>
 
 

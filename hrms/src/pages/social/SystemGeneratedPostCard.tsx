@@ -1,5 +1,5 @@
-import { Avatar, Box, Button, Card, CardContent, Chip, Divider, IconButton, Stack, Typography } from "@mui/material";
-import type { PostResponse } from "../../api/social.api";
+import { Avatar, Box, Button, CardContent, Chip, Divider, IconButton, Paper, Stack, Typography } from "@mui/material";
+import type { EditPostResponse } from "../../api/social.api";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
@@ -10,17 +10,25 @@ export default function SystemGeneratedPostCard({
   onLike,
   onNavigate,
 }: {
-  post: PostResponse;
+  post: EditPostResponse;
   onLike: (postId: number) => void;
   onNavigate: (postId: number) => void;
 }) {
   return (
-    <Card
+    <Paper
+      onClick={() => onNavigate(post.id)}
+      elevation={0}
+      variant="outlined"
       sx={{
         mb: 3,
-        border: "1px solid",
         borderColor: "info.main",
         backgroundColor: "rgba(2,136,209,0.05)",
+        cursor: "pointer",
+        transition: "background-color 0.2s ease, border-color 0.2s ease",
+        "&:hover": {
+          backgroundColor: "rgba(2,136,209,0.1)",
+          borderColor: "info.dark",
+        },
       }}
     >
       <CardContent>
@@ -109,6 +117,6 @@ export default function SystemGeneratedPostCard({
           </Button>
         </Stack>
       </CardContent>
-    </Card>
+    </Paper>
   );
 }

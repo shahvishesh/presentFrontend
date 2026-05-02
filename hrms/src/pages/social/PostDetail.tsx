@@ -4,17 +4,19 @@ import {
   getPostById,
   toggleLike,
   deletePost,
-  type PostResponse,
   addComment,
   type CommentResponse,
   getAllCommentByPostId,
   deleteComment,
   editComment,
+  type EditPostResponse,
+  type PostLikeUser,
+  getPostLikes,
 } from "../../api/social.api";
 import { toast } from "react-toastify";
 import {
   Box,
-  Card,
+  Paper,
   CardContent,
   Typography,
   Stack,
@@ -25,21 +27,24 @@ import {
   Chip,
   CircularProgress,
   TextField,
+  Modal,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useAuth } from "../../context/useAuth";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useUser } from "../../context/useUser";
 
 export default function PostDetail() {
   const { postid } = useParams();
   const navigate = useNavigate();
   const postId = Number(postid);
-  const { user } = useAuth();
-
-  const [post, setPost] = useState<PostResponse | null>(null);
+  const { user } = useUser();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [post, setPost] = useState<EditPostResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [commentText, setCommentText] = useState("");
@@ -48,6 +53,9 @@ export default function PostDetail() {
     const [comments, setComments] = useState<CommentResponse[]>([]);
     const [commentsLoading, setCommentsLoading] = useState(true);
 
+    const [likesOpen, setLikesOpen] = useState(false);
+const [likedUsers, setLikedUsers] = useState<PostLikeUser[]>([]);
+const [likesLoading, setLikesLoading] = useState(false);
     //
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
     const [editingText, setEditingText] = useState("");
@@ -171,6 +179,22 @@ const handleSaveEdit = async (commentId: number) => {
 //   }
 // };
 
+const handleOpenLikes = async () => {
+  if (!post) return;
+
+  try {
+    setLikesLoading(true);
+    setLikesOpen(true);
+
+    const res = await getPostLikes(post.id);
+    setLikedUsers(res);
+  } catch {
+    toast.error("Failed to load likes");
+  } finally {
+    setLikesLoading(false);
+  }
+};
+
 const handleAddComment = async () => {
   if (!post || !commentText.trim()) return;
 
@@ -183,11 +207,12 @@ const handleAddComment = async () => {
       commentId: Date.now(), // temporary id
       commentText,
       employeeId: 0,
-      employeeName: "You",
+      employeeName: user?.firstName + " " + user?.lastName,
       createdAt: new Date().toISOString(),
       isEdited: false,
       canEdit: false,
       canDelete: false,
+      authorImageUrl: user?.profileImageUrl || undefined,
     };
 
     setComments((prev) => [newComment, ...prev]);
@@ -242,7 +267,7 @@ const handleDeleteComment = async (commentId: number) => {
   if (!post) return null;
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", mt: 4 }}>
+    <Box sx={{ mt: 4, px: 2 }}>
       {/* Back Button */}
       <Button
         startIcon={<ArrowBackIcon />}
@@ -252,7 +277,15 @@ const handleDeleteComment = async (commentId: number) => {
         Back
       </Button>
 
-      <Card>
+      <Paper
+        elevation={0}
+        variant="outlined"
+        sx={{
+          overflow: "hidden",
+          borderColor: "divider",
+          backgroundColor: "background.paper",
+        }}
+      >
         <CardContent>
           {/* Header */}
           <Stack
@@ -261,7 +294,19 @@ const handleDeleteComment = async (commentId: number) => {
             alignItems="center"
           >
             <Stack direction="row" spacing={2} alignItems="center">
-              <Avatar>{post.authorName?.charAt(0)}</Avatar>
+              <Avatar
+  src={
+    post.authorImageUrl
+      ? `http://localhost:8080${post.authorImageUrl}`
+      : undefined
+  }
+  sx={{
+    width: 40,
+    height: 40,
+  }}
+>
+  {!post.authorImageUrl && post.authorName?.charAt(0)}
+</Avatar>
               <Box>
                 <Typography fontWeight={600}>
                   {post.authorName}
@@ -272,11 +317,25 @@ const handleDeleteComment = async (commentId: number) => {
               </Box>
             </Stack>
 
-            {post.canDelete && (
-              <IconButton color="error" onClick={handleDelete}>
-                <DeleteIcon />
-              </IconButton>
-            )}
+            <Stack direction="row" spacing={1}>
+
+              {post.canEdit && (
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        navigate(`/dashboard/social/edit/${post.id}`);
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  )}
+
+              {post.canDelete && (
+                <IconButton color="error" onClick={handleDelete}>
+                  <DeleteIcon />
+                </IconButton>
+              )}
+            </Stack>
           </Stack>
 
           <Divider sx={{ my: 2 }} />
@@ -306,6 +365,72 @@ const handleDeleteComment = async (commentId: number) => {
 
           <Divider sx={{ my: 1 }} />
 
+          {/* Images */}
+          {/* Images */}
+{post.media && post.media.length > 0 && (
+  <Box position="relative" sx={{ mb: 2 }}>
+
+    {/* Current image */}
+    <Box
+      component="img"
+      src={`http://localhost:8080${post.media[currentIndex].url}`}
+      sx={{
+        width: "100%",
+        maxHeight: 400,
+        objectFit: "contain",
+        borderRadius: 2,
+      }}
+    />
+
+    {/* LEFT ARROW */}
+    {post.media.length > 1 && (
+      <IconButton
+        disabled={currentIndex === 0}
+        onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0))}
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: 10,
+          transform: "translateY(-50%)",
+          backgroundColor: "rgba(0,0,0,0.5)",
+          color: "white",
+          "&:hover": {
+            backgroundColor: "rgba(0,0,0,0.7)",
+          },
+        }}
+      >
+        <ChevronLeftIcon />
+      </IconButton>
+    )}
+
+    {/* RIGHT ARROW */}
+    {post.media.length > 1 && (
+      <IconButton
+        disabled={currentIndex === post.media.length - 1}
+        onClick={() =>
+          setCurrentIndex((prev) =>
+            prev < post.media.length - 1 ? prev + 1 : prev
+          )
+        }
+        sx={{
+          position: "absolute",
+          top: "50%",
+          right: 10,
+          transform: "translateY(-50%)",
+          backgroundColor: "rgba(0,0,0,0.5)",
+          color: "white",
+          "&:hover": {
+            backgroundColor: "rgba(0,0,0,0.7)",
+          },
+        }}
+      >
+        <ChevronRightIcon />
+      </IconButton>
+    )}
+
+  </Box>
+)}
+
           {/* Like Section */}
           <Stack direction="row" spacing={1} alignItems="center">
             <IconButton onClick={handleLike}>
@@ -316,16 +441,33 @@ const handleDeleteComment = async (commentId: number) => {
               )}
             </IconButton>
 
-            <Typography>{post.likeCount} likes</Typography>
+            <Typography
+            sx={{ cursor: "pointer" }}
+            onClick={handleOpenLikes}
+          >
+            {post.likeCount} likes
+          </Typography>
           </Stack>
 
           <Divider sx={{ my: 2 }} />
 
             {/* Add Comment */}
             <Stack direction="row" spacing={2} alignItems="center">
-            <Avatar sx={{ width: 32, height: 32 }}>
-                {user?.username.charAt(0)}
-            </Avatar>
+ <Avatar
+  src={
+    user?.profileImageUrl
+      ? `http://localhost:8080${user.profileImageUrl}`
+      : undefined
+  }
+  onClick={() => navigate("/dashboard/profile")}
+  sx={{
+    cursor: "pointer",
+    ml: 2,
+    "&:hover": { opacity: 0.8 },
+  }}
+>
+  {!user?.profileImageUrl && user?.firstName?.charAt(0)}
+</Avatar>
 
             <TextField
                 fullWidth
@@ -357,7 +499,16 @@ const handleDeleteComment = async (commentId: number) => {
                     </Typography>
                 ) : (
                     comments.map((comment) => (
-  <Card key={comment.commentId} sx={{ mb: 2 }}>
+  <Paper
+    key={comment.commentId}
+    elevation={0}
+    variant="outlined"
+    sx={{
+      mb: 2,
+      borderColor: "divider",
+      backgroundColor: "background.paper",
+    }}
+  >
     <CardContent>
       <Stack
         direction="row"
@@ -365,9 +516,21 @@ const handleDeleteComment = async (commentId: number) => {
         alignItems="flex-start"
       >
         <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
-          <Avatar>
-            {comment.employeeName?.charAt(0)}
-          </Avatar>
+        <Avatar
+  src={
+    comment?.authorImageUrl
+      ? `http://localhost:8080${comment.authorImageUrl}`
+      : undefined
+  }
+  onClick={() => navigate("/dashboard/profile")}
+  sx={{
+    cursor: "pointer",
+    ml: 2,
+    "&:hover": { opacity: 0.8 },
+  }}
+>
+  {!comment?.authorImageUrl && comment?.employeeName?.charAt(0)}
+</Avatar>
 
           <Box sx={{ width: "100%" }}>
             <Typography fontWeight={600}>
@@ -456,12 +619,66 @@ const handleDeleteComment = async (commentId: number) => {
         </Stack>
       </Stack>
     </CardContent>
-  </Card>
+  </Paper>
 ))
                 )}
             </Box>
         </CardContent>
-      </Card>
+      </Paper>
+
+      <Modal open={likesOpen} onClose={() => setLikesOpen(false)}>
+  <Box
+    sx={{
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      bgcolor: "background.paper",
+      p: 3,
+      borderRadius: 2,
+      width: 300,
+      maxHeight: 400,
+      overflow: "auto",
+    }}
+  >
+    <Typography variant="h6" mb={2}>
+      Liked by
+    </Typography>
+
+    {likesLoading ? (
+      <Typography>Loading...</Typography>
+    ) : likedUsers.length === 0 ? (
+      <Typography>No likes yet</Typography>
+    ) : (
+      likedUsers.map((user) => (
+        <Stack
+          key={user.employeeId}
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          mb={1}
+        >
+           <Avatar
+  src={
+    user?.authorImageUrl
+      ? `http://localhost:8080${user.authorImageUrl}`
+      : undefined
+  }
+  onClick={() => navigate("/dashboard/profile")}
+  sx={{
+    cursor: "pointer",
+    ml: 2,
+    "&:hover": { opacity: 0.8 },
+  }}
+>
+  {!user?.authorImageUrl && user?.name?.charAt(0)}
+</Avatar>
+          <Typography>{user.name}</Typography>
+        </Stack>
+      ))
+    )}
+  </Box>
+</Modal>
     </Box>
   );
 }

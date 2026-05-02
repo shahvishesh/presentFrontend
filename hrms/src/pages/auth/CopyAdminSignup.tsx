@@ -13,11 +13,11 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { useEffect, useState } from "react";
 
 import { signup } from "../../api/auth.api";
 import { getAvailableEmploye, type EmployeeDetailResponse } from "../../api/employee.api";
+import { getApiErrorMessage } from "../../utils/apiError";
 
 type Role = "HR" | "EMPLOYEE" | "MANAGER";
 
@@ -26,12 +26,6 @@ interface RegisterRequest {
   password: string;
   employeeId: number;
   roles: Role[];
-}
-
-interface ErrorResponse {
-  message: string;
-  code: number;
-  timestamp: string;
 }
 
 export default function AdminSignUp() {
@@ -61,12 +55,7 @@ export default function AdminSignUp() {
       toast.success("Registration successful");
       navigate("/login");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ErrorResponse>(error)) {
-        const message = error.response?.data.message || "Signup failed";
-        toast.error(message);
-      } else {
-        toast.error("Something went wrong");
-      }
+      toast.error(getApiErrorMessage(error, "Signup failed"));
     }
   };
 

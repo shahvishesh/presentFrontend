@@ -19,6 +19,7 @@ import {
   dataTableHeadRowSx,
   dataTablePrimaryCellSx,
 } from "../../components/table/tableStyles";
+import { formatDateToDDMMYYYY } from "../../utils/dateFormat";
 
 interface Props {
   employeeId: number;
@@ -47,7 +48,7 @@ export default function ManagerTravelTable({ employeeId, travels }: Props) {
               <TableRow key={travel.travelPlanId} hover>
                 <TableCell sx={dataTablePrimaryCellSx}>{travel.title}</TableCell>
                 <TableCell>
-                  {travel.startDate} - {travel.endDate}
+                  {formatDateToDDMMYYYY(travel.startDate)} - {formatDateToDDMMYYYY(travel.endDate)}
                 </TableCell>
                 <TableCell>{travel.sourceLocation}</TableCell>
                 <TableCell>{travel.destinationLocation}</TableCell>

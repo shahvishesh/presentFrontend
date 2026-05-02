@@ -1,8 +1,9 @@
-import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getEmployeeTravelPlans, type TravelPlanResponse } from "../../api/travel.api";
 import { toast } from "react-toastify";
+import { formatDateToDDMMYYYY } from "../../utils/dateFormat";
 
 export default function DEmployeeTravelPlanList(){
     const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function DEmployeeTravelPlanList(){
                     {travelPlans?.map((travel) => (
                     <TableRow key={travel.travelPlanId}>
                         <TableCell>{travel.title}</TableCell>
-                        <TableCell>{travel.startDate} - {travel.endDate}</TableCell>
+                        <TableCell>{formatDateToDDMMYYYY(travel.startDate)} - {formatDateToDDMMYYYY(travel.endDate)}</TableCell>
                         <TableCell>{travel.sourceLocation}</TableCell>
                         <TableCell>{travel.destinationLocation}</TableCell>
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { deletePost, getAllPost, toggleLike, type PostResponse } from "../../api/social.api";
+import { deletePost, getAllPost, toggleLike, type EditPostResponse } from "../../api/social.api";
 import { toast } from "react-toastify";
 import {
   Box,
-  Card,
+  Paper,
   CardContent,
   Typography,
   Chip,
@@ -13,7 +13,19 @@ import {
   IconButton,
   Button,
   CardActionArea,
+  Tooltip,
 } from "@mui/material";
+import {
+  pageRootSx,
+  pageHeaderPaperSx,
+  pageHeaderStackSx,
+  pageHeaderTitleSx,
+  pageScrollableContentPaperSx,
+  pageScrollableAreaSx,
+  pageCenteredStateSx,
+  pageEmptyStateTitleSx,
+  pageEmptyStateSubtitleSx,
+} from "../../components/page/pageStyles";
 
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -22,10 +34,13 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
 import EditIcon from "@mui/icons-material/Edit";
 import SystemGeneratedPostCard from "./SystemGeneratedPostCard";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 export default function ViewAllPost() {
-  const [posts, setPosts] = useState<PostResponse[]>([]);
+  const [posts, setPosts] = useState<EditPostResponse[]>([]);
   const navigate = useNavigate();
+  const [currentIndexMap, setCurrentIndexMap] = useState<Record<number, number>>({});
 
 useEffect(() => {
   getAllPost()
@@ -71,7 +86,34 @@ const handleDelete = async (postId: number) => {
 };
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", mt: 4 }}>
+    <Box sx={pageRootSx}>
+      <Paper variant="outlined" sx={pageHeaderPaperSx}>
+        <Stack spacing={0.25} sx={pageHeaderStackSx}>
+          <Typography variant="h5" sx={pageHeaderTitleSx}>
+            Posts
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Explore posts from the community
+          </Typography>
+        </Stack>
+      </Paper>
+
+      <Paper
+        variant="outlined"
+        sx={{
+          ...pageScrollableContentPaperSx,
+          backgroundColor: "grey.100",
+        }}
+      >
+        {posts && posts.length > 0 ? (
+          <Box sx={pageScrollableAreaSx}>
+            <Box
+              sx={{
+                maxWidth: 900,
+                mx: "auto",
+                p: { xs: 2, sm: 2.5 },
+              }}
+            >
       {posts?.map((post) => 
        post.isSystemGenerated ? (
           <SystemGeneratedPostCard
@@ -83,7 +125,22 @@ const handleDelete = async (postId: number) => {
             }
           />
         ) :(
-        <Card key={post.id} sx={{ mb: 3 }}>
+        <Paper
+          key={post.id}
+          elevation={0}
+          variant="outlined"
+          sx={{
+            mb: 3,
+            overflow: "hidden",
+            borderColor: "divider",
+            backgroundColor: "background.paper",
+            transition: "border-color 0.2s ease, background-color 0.2s ease",
+            "&:hover": {
+              borderColor: "primary.main",
+              backgroundColor: "action.hover",
+            },
+          }}
+        >
           <CardActionArea component="div" onClick={() => navigate(`/dashboard/social/post/${post.id}`)}>
 
             <CardContent>
@@ -93,17 +150,45 @@ const handleDelete = async (postId: number) => {
                 justifyContent="space-between"
                 alignItems="center"
               >
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar>{post.authorName?.charAt(0)}</Avatar>
-                  <Box>
-                    <Typography fontWeight={600}>
-                      {post.authorName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(post.createdAt).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Stack>
+              <Tooltip title="View profile" arrow>
+                
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Avatar
+  src={
+    post.authorImageUrl
+      ? `http://localhost:8080${post.authorImageUrl}`
+      : undefined
+  }
+  sx={{
+    cursor: "pointer",
+    width: 40,
+    height: 40,
+  }}
+  onClick={(e) => {
+    e.stopPropagation();
+    navigate(`/dashboard/social/user/${post.employeeId}`);
+  }}
+>
+  {!post.authorImageUrl && post.authorName?.charAt(0)}
+</Avatar>
+
+                    <Box>
+                      <Typography
+    fontWeight={600}
+    sx={{ cursor: "pointer" }}
+    onClick={(e) => {
+      e.stopPropagation();
+      navigate(`/dashboard/social/user/${post.employeeId}`);
+    }}
+  >
+    {post.authorName}
+  </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(post.createdAt).toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Stack>
+              </Tooltip>
 
               <Stack direction="row" spacing={1}>
                 {post.canEdit && (
@@ -169,6 +254,93 @@ const handleDelete = async (postId: number) => {
                   ))}
               </Stack>
 
+              {/* Images */}
+              {/* Images */}
+{post.media && post.media.length > 0 && (
+  <Box position="relative" sx={{ mb: 2 }}>
+
+    {/* Current image */}
+    <Box
+      component="img"
+      src={`http://localhost:8080${
+        post.media[currentIndexMap[post.id] || 0].url
+      }`}
+      sx={{
+        width: "100%",
+        maxHeight: 350,
+        objectFit: "cover",
+        borderRadius: 2,
+      }}
+    />
+
+    {/* LEFT ARROW */}
+    {post.media.length > 1 && (
+  <IconButton
+    disabled={(currentIndexMap[post.id] || 0) === 0}
+    onClick={(e) => {
+      e.stopPropagation();
+      setCurrentIndexMap((prev) => {
+        const current = prev[post.id] || 0;
+        return {
+          ...prev,
+          [post.id]: current > 0 ? current - 1 : 0,
+        };
+      });
+    }}
+    sx={{
+      position: "absolute",
+      top: "50%",
+      left: 10,
+      transform: "translateY(-50%)",
+      backgroundColor: "rgba(0,0,0,0.5)",
+      color: "white",
+      "&:hover": {
+        backgroundColor: "rgba(0,0,0,0.7)",
+      },
+    }}
+  >
+    <ChevronLeftIcon />
+  </IconButton>
+)}
+
+    {/* RIGHT ARROW */}
+    {post.media.length > 1 && (
+  <IconButton
+    disabled={
+      (currentIndexMap[post.id] || 0) === post.media.length - 1
+    }
+    onClick={(e) => {
+      e.stopPropagation();
+      setCurrentIndexMap((prev) => {
+        const current = prev[post.id] || 0;
+        return {
+          ...prev,
+          [post.id]:
+            current < post.media.length - 1
+              ? current + 1
+              : current,
+        };
+      });
+    }}
+    sx={{
+      position: "absolute",
+      top: "50%",
+      right: 10,
+      transform: "translateY(-50%)",
+      backgroundColor: "rgba(0,0,0,0.5)",
+      color: "white",
+      "&:hover": {
+        backgroundColor: "rgba(0,0,0,0.7)",
+      },
+    }}
+  >
+    <ChevronRightIcon />
+  </IconButton>
+)}
+
+  </Box>
+)}
+
               <Divider sx={{ my: 1 }} />
 
               {/* Action Buttons */}
@@ -209,8 +381,19 @@ const handleDelete = async (postId: number) => {
               </Stack>
             </CardContent>
           </CardActionArea>
-        </Card>
-      ))}
+        </Paper>
+      ))}            </Box>          </Box>
+        ) : (
+          <Box sx={pageCenteredStateSx}>
+            <Typography sx={pageEmptyStateTitleSx}>
+              No posts yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={pageEmptyStateSubtitleSx}>
+              Be the first to share something with the community!
+            </Typography>
+          </Box>
+        )}
+      </Paper>
     </Box>
   );
 }

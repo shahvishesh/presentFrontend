@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { getEmployees } from "../../api/employee.api";
+import { getAvailableUserEmployees, getEmployees } from "../../api/employee.api";
 import { Controller, useForm } from "react-hook-form";
 import { type EmployeeResponse } from "../../api/employee.api";
-import { createTravelPlan, type TravelPlanRequest } from "../../api/travel.api";
+import { createTravelPlan, type EmployeeConflict, type TravelPlanRequest } from "../../api/travel.api";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import {
@@ -46,6 +46,7 @@ export default function CreateTravel(){
     const navigate = useNavigate();
     const [employees, setEmployees] = useState<EmployeeResponse []|null>(null);
     const today = dayjs().startOf("day");
+    const [conflicts, setConflicts] = useState<EmployeeConflict[]>([]);
 
     const {
         control,
@@ -70,9 +71,12 @@ export default function CreateTravel(){
     const startDateValue = watch("startDate");
     const endDateValue = watch("endDate");
 
+    useEffect(() => {
+        setConflicts([]);
+    }, [startDateValue, endDateValue]);
 
     useEffect(() => {
-         getEmployees()
+         getAvailableUserEmployees()
             .then((res) => setEmployees(res))
             .catch(() => toast.error("Failed to load employees"));
     }, []);
@@ -98,9 +102,22 @@ export default function CreateTravel(){
             navigate("/dashboard/travel/"); 
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
-            toast.error(error.response?.data?.message || "API Error");
+
+                if (error.response?.status === 409) {
+                const errorData = error.response?.data as {
+                        message: string;
+                        status: number;
+                        data: EmployeeConflict[];
+                    };
+
+                    setConflicts(errorData.data);
+                    toast.error(errorData.message);
+                } else {
+                    toast.error(error.response?.data?.message || "API Error");
+                }
+
             } else {
-            toast.error("Something went wrong");
+                toast.error("Something went wrong");
             }
         }
     };
@@ -235,6 +252,7 @@ export default function CreateTravel(){
                                         <DatePicker
                                             label="Select start date"
                                             value={field.value}
+                                            format="DD/MM/YYYY"
                                             minDate={today}
                                             maxDate={endDateValue ?? undefined}
                                             onChange={(newValue) => {
@@ -276,6 +294,7 @@ export default function CreateTravel(){
                                         <DatePicker
                                             label="Select end date"
                                             value={field.value}
+                                            format="DD/MM/YYYY"
                                             minDate={startDateValue ?? today}
                                             onChange={(newValue) => {
                                                 field.onChange(newValue);
@@ -325,6 +344,12 @@ export default function CreateTravel(){
                                     <Typography variant="h6" sx={{ mb: 1 }}>
                                         Select Employees
                                     </Typography>
+                                    {conflicts.length > 0 && (
+                                        <Typography color="error" variant="body2" mb={1}>
+                                            {conflicts.length} employee{conflicts.length > 1 ? "s are" : " is"} unavailable:{" "}
+                                            {conflicts.map(c => c.employeeName).join(", ")}
+                                        </Typography>
+                                    )}
                                 </Grid>
                                 
 
@@ -346,26 +371,53 @@ export default function CreateTravel(){
                                                 }}
                                             >
                                                 <FormGroup>
-                                                    {employees?.map((emp) => (
-                                                        <FormControlLabel
-                                                            key={emp.id}
-                                                            control={
-                                                                <Checkbox
-                                                                    checked={field.value?.includes(emp.id)}
-                                                                    onChange={(e) => {
-                                                                        if (e.target.checked) {
-                                                                            field.onChange([...field.value, emp.id]);
-                                                                        } else {
-                                                                            field.onChange(
-                                                                                field.value.filter((id: number) => id !== emp.id)
-                                                                            );
-                                                                        }
-                                                                    }}
+                                                    {employees?.map((emp) => {
+                                                        const conflict = conflicts.find(c => c.employeeId === emp.id);
+
+                                                        return (
+                                                            <Stack
+                                                                key={emp.id}
+                                                                direction="column"
+                                                                sx={{
+                                                                    border: conflict ? "1px solid red" : "1px solid transparent",
+                                                                    borderRadius: 1,
+                                                                    px: 1,
+                                                                    py: 0.5,
+                                                                    mb: 0.5,
+                                                                    backgroundColor: conflict ? "#ffe6e6" : "transparent"
+                                                                }}
+                                                            >
+                                                                <FormControlLabel
+                                                                    control={
+                                                                        <Checkbox
+                                                                            checked={field.value?.includes(emp.id)}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.checked) {
+                                                                                    field.onChange([...field.value, emp.id]);
+                                                                                } else {
+                                                                                    field.onChange(
+                                                                                        field.value.filter((id: number) => id !== emp.id)
+                                                                                    );
+
+                                                                                    // remove conflict when unchecked
+                                                                                    setConflicts(prev =>
+                                                                                        prev.filter(c => c.employeeId !== emp.id)
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    }
+                                                                    label={`${emp.firstName} ${emp.lastName} (${emp.designation})`}
                                                                 />
-                                                            }
-                                                            label={`${emp.firstName} ${emp.lastName} (${emp.designation})`}
-                                                        />
-                                                    ))}
+
+                                                                {conflict && (
+                                                                    <Typography variant="caption" color="error">
+                                                                        Booked: {conflict.bookedFrom} → {conflict.bookedTo}
+                                                                    </Typography>
+                                                                )}
+                                                            </Stack>
+                                                        );
+                                                    })}
                                                 </FormGroup>
                                             </Box>
                                         )}

@@ -128,3 +128,10 @@ export const updateTravelPlan = async (travelPlanId: number, data: UpdateTravelP
     const res = await axiosInstance.patch<TravelPlanResponse>(`/travel/update/${travelPlanId}`, data);
     return res.data;
 }
+
+export interface EmployeeConflict {
+  employeeId: number;
+  employeeName: string;
+  bookedFrom: string; 
+  bookedTo: string;
+}

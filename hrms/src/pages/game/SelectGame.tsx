@@ -1,35 +1,18 @@
-import { useEffect, useState } from "react";
-import { getGameType, type GameTypeResponse } from "../../api/slot.api";
-import { toast } from "react-toastify";
-import { Button } from "@mui/material";
+import { getSlots } from "../../api/slot.api";
 import { useNavigate } from "react-router-dom";
+import GameType from "./game-tabs/GameType";
 
 export default function SelectGame(){
-
-    const[games, setGames] = useState<GameTypeResponse[]>([]);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        getGameType()
-                .then((data) => setGames(data))
-                .catch(() => toast.error("Error loading games"));
-    }, []);
 
     return(
         <>
-             <Button sx={{mb: 5, display:"block"}} variant="outlined" onClick={() =>navigate(-1)}>
-                Back
-            </Button>
-            {games.map((game) => (
-                <Button 
-                    variant="contained"
-                    sx={{mx:2}}
-                    key={game.id}
-                    onClick={() => navigate(`/dashboard/game/${game.id}/slot`)}    
-                >
-                    {game.gameName}
-                </Button>
-            ))}
+             <GameType
+                fetchSlots={getSlots}
+                buttonText="Register"
+                onAction={(slot) => navigate(`/dashboard/game/slot/${slot.slotId}`)}
+                headerSubtitle="Browse available slots and register for your preferred game."
+            />
         </>
     );
 }

@@ -47,6 +47,7 @@ export type TravelDocumentResponse = {
     fileName: string;
     uploadedByName: string;
     uploadedByRole: string;
+    documentTypeId: number;
 }
 
 export const getEmployeeDocuments = async (id: number): Promise<TravelDocumentResponse []> => {
@@ -68,6 +69,35 @@ export const deleteDocument = async (travelDocumentId: number) => {
     await axiosInstance.delete(`/document/${travelDocumentId}/delete`);
 }
 
+export type UpdateTravelDocumentRequest = {
+    documentTypeId: number | "";
+}
+
+export const updateTravelDocument = async (
+  documentId: number,
+  data: UpdateTravelDocumentRequest,
+  file?: File
+) => {
+  const formData = new FormData();
+
+  formData.append(
+    "data",
+    new Blob([JSON.stringify(data)], {
+      type: "application/json",
+    })
+  );
+
+  if (file) {
+    formData.append("file", file);
+  }
+
+  const res = await axiosInstance.put(
+    `/document/${documentId}/update`,
+    formData
+  );
+
+  return res.data;
+};
 
 //  private Long travelDocumentId;
 //     private Long travelPlanId;

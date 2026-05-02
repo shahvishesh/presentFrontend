@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/useAuth";
 import NotificationBell from "../pages/notification/NotificationBell";
-import { useUser } from "../context/UseUser";
+import { useUser } from "../context/useUser";
 
 type NavbarProps = {
     drawerWidth: number;
@@ -46,17 +46,20 @@ export default function Navbar({ drawerWidth }: NavbarProps) {
         </Button>
 
         <Avatar
-           onClick={() => navigate("/dashboard/profile")}
-           sx={{
-            cursor: "pointer",
-            ml: 2,
-            "&:hover": {
-              opacity: 0.8,
-            },
-          }}
-        >
-          {user?.firstName?.charAt(0)}
-        </Avatar>
+  src={
+    user?.profileImageUrl
+      ? `http://localhost:8080${user.profileImageUrl}`
+      : undefined
+  }
+  onClick={() => navigate("/dashboard/profile")}
+  sx={{
+    cursor: "pointer",
+    ml: 2,
+    "&:hover": { opacity: 0.8 },
+  }}
+>
+  {!user?.profileImageUrl && user?.firstName?.charAt(0)}
+</Avatar>
 
       </Toolbar>
     </AppBar>

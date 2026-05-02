@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Box, Button, Divider, Grid, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, Divider, Grid, IconButton, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { openDocumentFileE } from "../../api/file.api";
 import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import type { ErrorResponse } from "../../utils/commonInterface";
 import {
+    deleteDocument,
     getDocumentTypes,
     getEmployeeDocumentsByEmployeeId,
+    updateTravelDocument,
     uploadTravelDocument,
     type DocumentType,
     type TravelDocumentResponse,
@@ -28,10 +33,10 @@ import {
     pageHeaderStackSx,
     pageHeaderTitleSx,
     pageRootSx,
-    pageSectionPaperSx,
 } from "../../components/page/pageStyles";
 import { getEmployeeProfileById, type EmployeeProfileDetail } from "../../api/employee.api";
 import { getDepartments } from "../../api/department.api";
+import UpdateDocumentModal from "./UpdateDocumentModal";
 
 export default function UploadDocument(){
 
@@ -39,6 +44,16 @@ export default function UploadDocument(){
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>();
     
     const { travelPlanId, employeeId } = useParams();
+    const travelPlanIdNum = Number(travelPlanId);
+    const employeeIdNum = Number(employeeId);
+
+     //
+    const [openUpdate, setOpenUpdate] = useState(false);
+    const [selectedDoc, setSelectedDoc] = useState<TravelDocumentResponse | null>(null);
+    const [updateFile, setUpdateFile] = useState<File | null>(null);
+    const [updateDocType, setUpdateDocType] = useState("");
+
+    //
 
     //
         const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -67,9 +82,16 @@ export default function UploadDocument(){
                 toast.error("Please upload document");
                 return;
             }
+            if (!Number.isFinite(employeeIdNum) || !Number.isFinite(travelPlanIdNum)) {
+                toast.error("Invalid route details");
+                return;
+            }
             try {
-                data.employeeId = Number(employeeId);
-                await uploadTravelDocument(Number(travelPlanId), data, documentFile)
+                data.employeeId = employeeIdNum;
+                await uploadTravelDocument(travelPlanIdNum, data, documentFile)
+
+                const refreshed = await getEmployeeDocumentsByEmployeeId(employeeIdNum, travelPlanIdNum);
+                setDocuments(refreshed);
 
                 toast.success("Document uploaded successfully");
                 reset();
@@ -95,14 +117,15 @@ export default function UploadDocument(){
 
 
     //
-    useEffect(() => {
-         getEmployeeDocumentsByEmployeeId(Number(employeeId),Number(travelPlanId))
+        useEffect(() => {
+         if (!Number.isFinite(employeeIdNum) || !Number.isFinite(travelPlanIdNum)) return;
+
+         getEmployeeDocumentsByEmployeeId(employeeIdNum, travelPlanIdNum)
             .then((data) => setDocuments(data))
             .catch(() => toast.error("Failed to load documents"))
-    }, []);
+        }, [employeeIdNum, travelPlanIdNum]);
 
     useEffect(() => {
-        const employeeIdNum = Number(employeeId);
         if (!Number.isFinite(employeeIdNum)) return;
     
         Promise.all([getEmployeeProfileById(employeeIdNum), getDepartments()])
@@ -115,6 +138,81 @@ export default function UploadDocument(){
           })
           .catch(() => toast.error("Failed to load employee"));
       }, [employeeId]);
+
+       const handleDelete = async (travelDocumentId: number) => {
+                  const confirmDelete = window.confirm("Are you sure you want to delete this document?");
+                  if (!confirmDelete) return;
+                
+                  try {
+                    await deleteDocument(travelDocumentId);
+                
+                    setDocuments((prev) => prev.filter((doc) => doc.travelDocumentId !== travelDocumentId));
+                
+                    toast.success("Travel document deleted");
+                  } catch {
+                    toast.error("Failed to delete document");
+                  }
+        };
+
+         //
+        const handleOpenUpdate = (doc: TravelDocumentResponse) => {
+        setSelectedDoc(doc);
+        setUpdateFile(null);
+        setUpdateDocType(String(doc.documentTypeId)); // 👈 important
+        setOpenUpdate(true);
+        };
+
+        const handleUpdateFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setUpdateFile(e.target.files[0]);
+        }
+        };
+
+        const handleUpdateSubmit = async () => {
+  if (!selectedDoc) return;
+    if (!updateDocType) {
+        toast.error("Document type is required");
+        return;
+    }
+    if (!Number.isFinite(employeeIdNum) || !Number.isFinite(travelPlanIdNum)) {
+        toast.error("Invalid route details");
+        return;
+    }
+
+  try {
+    await updateTravelDocument(
+      selectedDoc.travelDocumentId,
+      {
+        documentTypeId: Number(updateDocType)
+      },
+      updateFile || undefined
+    );
+
+    toast.success("Document updated");
+
+    setOpenUpdate(false);
+    setUpdateFile(null);
+setSelectedDoc(null);
+
+    // 🔁 refresh list
+    const refreshed = await getEmployeeDocumentsByEmployeeId(
+            employeeIdNum,
+            travelPlanIdNum
+    );
+    setDocuments(refreshed);
+
+  } catch (error: unknown) {
+    if (axios.isAxiosError<ErrorResponse>(error)) {
+      const message =
+        error.response?.data.message || "Failed to update document";
+      toast.error(message);
+    } else {
+      toast.error("Something went wrong");
+    }
+  } finally {
+        // no-op
+  }
+};
 
     return(
         <Box sx={pageRootSx}>
@@ -276,13 +374,38 @@ export default function UploadDocument(){
 
                                         <TableCell align="center">
                                             <Stack direction="row" spacing={1} sx={dataTableActionsStackSx}>
-                                                <Button
-                                                    onClick={() => openDocumentFileE(doc.travelDocumentId)}
-                                                    variant="contained"
-                                                    size="small"
-                                                >
-                                                    View Document
-                                                </Button>
+                                                <Tooltip title="View Document">
+                                                    <IconButton
+                                                        color="primary"
+                                                        size="small"
+                                                        onClick={() => openDocumentFileE(doc.travelDocumentId)}
+                                                    >
+                                                        <VisibilityIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                                {doc.uploadedByRole === "HR" && (
+                                                    <>
+                                                        <Tooltip title="Delete">
+                                                            <IconButton
+                                                                color="error"
+                                                                size="small"
+                                                                onClick={() => handleDelete(doc.travelDocumentId)}
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+
+                                                        <Tooltip title="Update">
+                                                            <IconButton
+                                                                color="secondary"
+                                                                size="small"
+                                                                onClick={() => handleOpenUpdate(doc)}
+                                                            >
+                                                                <EditIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </>
+                                                )}
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -299,6 +422,17 @@ export default function UploadDocument(){
                         </Table>
                     </TableContainer>
                 </Paper>
+                <UpdateDocumentModal
+  open={openUpdate}
+  onClose={() => setOpenUpdate(false)}
+  documentTypes={documentTypes}
+  selectedDoc={selectedDoc}
+  updateFile={updateFile}
+  updateDocType={updateDocType}
+  onDocTypeChange={setUpdateDocType}
+  onFileChange={handleUpdateFileChange}
+  onSubmit={handleUpdateSubmit}
+/>
             </Box>
     )
 }

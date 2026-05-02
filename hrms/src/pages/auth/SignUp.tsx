@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { signup } from "../../api/auth.api";
-import axios from "axios";
+import { getApiErrorMessage } from "../../utils/apiError";
 import {
   pageContentPaperSx,
   pageHeaderPaperSx,
@@ -35,12 +35,6 @@ interface RegisterRequest {
 
 }
 
-interface ErrorResponse{
-    message: string;
-    code: number;
-    timestamp: string;
-}
-
 export default function SignUp() {
   const {
     register,
@@ -56,12 +50,7 @@ export default function SignUp() {
       toast.success("Registration successful");
       navigate("/login");
     } catch (error: unknown) {
-        if(axios.isAxiosError<ErrorResponse>(error)){
-                const message = error.response?.data.message || "signup failed";
-                toast.error(message);
-        }else{
-            toast.error("Something went wrong");
-        }
+      toast.error(getApiErrorMessage(error, "Signup failed"));
     }
   };
 

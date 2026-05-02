@@ -36,6 +36,7 @@ export default function Test() {
             <DatePicker
               label="Select start date"
               value={field.value}
+              format="DD/MM/YYYY"
               onChange={(newValue) => field.onChange(newValue)}
             //   minDate={dayjs("2020-01-01")}
             //   maxDate={dayjs("2030-12-31")}
@@ -59,6 +60,7 @@ export default function Test() {
             <DatePicker
               label="Select end date"
               value={field.value}
+              format="DD/MM/YYYY"
               onChange={(newValue) => field.onChange(newValue)}
             //   minDate={dayjs("2020-01-01")}
             //   maxDate={dayjs("2030-12-31")}

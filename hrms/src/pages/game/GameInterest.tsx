@@ -1,16 +1,38 @@
 import { useEffect, useState } from "react";
-import { getGameInterest, getGameType, updateGameInterest, type GameInterestResponse, type GameTypeResponse, type UpdateGameInterest } from "../../api/slot.api";
+import {
+    getGameInterest,
+    getGameType,
+    updateGameInterest,
+    type GameTypeResponse,
+    type UpdateGameInterest,
+} from "../../api/slot.api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import {
+    Box,
+    Button,
+    Checkbox,
+    Divider,
+    FormControlLabel,
+    Paper,
+    Stack,
+    Typography,
+} from "@mui/material";
 import { getEmployeeDetail, type EmployeeResponse } from "../../api/employee.api";
 import { Controller, useForm } from "react-hook-form";
+import {
+    pageContentPaperSx,
+    pageDividerSx,
+    pageHeaderPaperSx,
+    pageHeaderStackSx,
+    pageHeaderTitleSx,
+    pageRootSx,
+} from "../../components/page/pageStyles";
 
-export default function GameInterest(){
-    const[games, setGames] = useState<GameTypeResponse[]>([]);
-    const[gameInterest, setGameInterest] = useState<GameInterestResponse[]>([]);
+export default function GameInterest() {
+    const [games, setGames] = useState<GameTypeResponse[]>([]);
     const [employee, setEmployee] = useState<EmployeeResponse>();
-    
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -39,7 +61,6 @@ export default function GameInterest(){
      useEffect(() => {
         getGameInterest()
                 .then((data) => {
-                    setGameInterest(data)
                     reset({
                         gameIds: data.map((t) => t.gameId)
                     });
@@ -60,95 +81,132 @@ export default function GameInterest(){
       };
 
     return(
-        <>
-            <Box>
-                <Card sx={{my: 2}}>
-                    <CardContent>
-                         <Typography>
-                         Name:   {employee?.firstName} {employee?.lastName}
+        <Box sx={pageRootSx}>
+            <Paper variant="outlined" sx={pageHeaderPaperSx}>
+                <Stack spacing={1} alignItems="flex-start" sx={pageHeaderStackSx}>
+                    <Stack spacing={0.25}>
+                        <Typography variant="h5" sx={pageHeaderTitleSx}>
+                            Game Interest
                         </Typography>
-                        
-                         <Typography>
-                         Designation:   {employee?.designation}
+                        <Typography variant="body2" color="text.secondary">
+                            Choose the games you want to follow.
                         </Typography>
+                    </Stack>
+                </Stack>
+            </Paper>
 
-                         <Typography>
-                        Department:    {employee?.department}
+                {employee && (
+                    <Paper variant="outlined" sx={{
+                        p: { xs: 2, sm: 2.5 },
+                        overflow: "hidden",
+                        borderTop:0,
+                        borderRadius:0,
+                    }}>
+                      <Typography variant="h5">
+                        {employee.firstName} {employee.lastName}
+                      </Typography>
+                      <Divider sx={pageDividerSx} />
+            
+                      <Stack spacing={0.5}>
+                        <Typography variant="body1">
+                          Designation: {employee.designation}
                         </Typography>
-                        </CardContent>
-                </Card>
-                <Card>
-                    <CardContent>
-                        <form onSubmit={handleSubmit(onSubmit)}>
-                            <Stack spacing={3}>
+                        <Typography variant="body1">
+                          Department: {employee.department}
+                        </Typography>
+                      </Stack>
+                    </Paper>
+                  )}
 
+            <Paper variant="outlined" sx={pageContentPaperSx}>
+                    <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: { xs: 2, sm: 2.5 } }}>
+                        <Stack spacing={2}>
                             <Controller
-                                    name="gameIds"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <>
-                                        <Typography variant="subtitle1" mb={1}>
-                                            Select game tags
+                                name="gameIds"
+                                control={control}
+                                render={({ field }) => (
+                                    <>
+                                        {/** Grid-based selector is easier to scan and interact with than chips. */}
+                                        <Typography variant="subtitle1" fontWeight={600} mb={1}>
+                                            Select games you are interested in
                                         </Typography>
-
+                                         <Divider sx={pageDividerSx} />
                                         <Box
                                             sx={{
-                                            display: "flex",
-                                            flexWrap: "wrap",
-                                            gap: 1,
+                                                display: "grid",
+                                                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                                                gap: 1.25,
                                             }}
                                         >
                                             {games.map((game) => {
-                                            const selected = field.value.includes(game.id);
+                                                const selected = field.value.includes(game.id);
 
-                                            return (
-                                                <Chip
-                                                key={game.id}
-                                                label={game.gameName}
-                                                clickable
-                                                color={selected ? "primary" : "default"}
-                                                variant={selected ? "filled" : "outlined"}
-                                                onClick={() => {
+                                                const toggleGame = () => {
                                                     if (selected) {
-                                                    field.onChange(
-                                                        field.value.filter(
-                                                        (id) => id !== game.id
-                                                        )
-                                                    );
-                                                    } else {
-                                                    field.onChange([
-                                                        ...field.value,
-                                                        game.id,
-                                                    ]);
+                                                        field.onChange(
+                                                            field.value.filter((id) => id !== game.id)
+                                                        );
+                                                        return;
                                                     }
-                                                }}
-                                                />
-                                            );
+
+                                                    field.onChange([...field.value, game.id]);
+                                                };
+
+                                                return (
+                                                    <FormControlLabel
+                                                        key={game.id}
+                                                        control={
+                                                            <Checkbox
+                                                                checked={selected}
+                                                                onChange={toggleGame}
+                                                            />
+                                                        }
+                                                        label={
+                                                            <Typography variant="body2" fontWeight={500}>
+                                                                {game.gameName}
+                                                            </Typography>
+                                                        }
+                                                        sx={{
+                                                            m: 0,
+                                                            px: 1,
+                                                            py: 0.5,
+                                                            border: "1px solid",
+                                                            borderColor: selected ? "primary.main" : "divider",
+                                                            borderRadius: 2,
+                                                            bgcolor: selected ? "action.selected" : "background.paper",
+                                                            transition: "all 0.2s ease",
+                                                            '&:hover': {
+                                                                borderColor: "primary.main",
+                                                                bgcolor: "action.hover",
+                                                            },
+                                                        }}
+                                                    />
+                                                );
                                             })}
                                         </Box>
 
                                         {errors.gameIds && (
                                             <Typography
-                                            color="error"
-                                            variant="caption"
-                                            sx={{ mt: 1, display: "block" }}
+                                                color="error"
+                                                variant="caption"
+                                                sx={{ mt: 1, display: "block" }}
                                             >
-                                            {errors.gameIds.message}
+                                                {errors.gameIds.message}
                                             </Typography>
                                         )}
-                                        </>
-                                    )}
-                                    />
-
-                            <Button variant="contained" type="submit">
-                                Update Post
-                            </Button>
+                                    </>
+                                )}
+                            />
+                             <Divider sx={pageDividerSx} />
+                            <Stack direction="row" justifyContent="flex-end">
+                                <Button variant="contained" type="submit">
+                                    Update Interest
+                                </Button>
+                            </Stack>
                         </Stack>
-                    </form>
-
-                    </CardContent>
-                </Card>
-            </Box>
-        </>
+                    </Box>
+                
+            </Paper>
+        </Box>
     );
 }

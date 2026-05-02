@@ -53,3 +53,21 @@ export const openCVFile = async (fileId: number) => {
         console.error("Error opening file:", error);
     }
 }
+
+export const openJDFile = async (fileId: number) => {
+    try{
+        const res = await axiosInstance.get(`job/job-descriptions/${fileId}/view`, {
+            responseType: "blob"
+        });
+
+        const fileBlob = new Blob([res.data], {
+            type: res.headers["content-type"],
+        });
+
+        const fileURL = window.URL.createObjectURL(fileBlob);
+
+        window.open(fileURL, "_blank");
+    }catch(error){
+        console.error("Error opening file:", error);
+    }
+}

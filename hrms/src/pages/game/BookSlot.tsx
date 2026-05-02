@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react"
-import { getSlotDetail, registerSlot, type RegisterSlot, type SlotResponse } from "../../api/slot.api"
-import { replace, useNavigate, useParams } from "react-router-dom";
+import { getMyStatus, getSlotDetail, registerSlot, type RegisterSlot, type SlotResponse, type UserSlotStatus } from "../../api/slot.api"
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { getEmployees, getInterestedEmployees, type EmployeeResponse } from "../../api/employee.api";
-import { Box, Button, Card, CardContent, Checkbox, CircularProgress, Container, FormControlLabel, FormGroup, Stack, Typography } from "@mui/material";
+import {getInterestedEmployees, type EmployeeResponse } from "../../api/employee.api";
+import { Alert, Box, Button, Checkbox, CircularProgress, Divider, FormControlLabel, FormGroup, Paper, Stack, Typography } from "@mui/material";
 import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
+import {
+    pageContentPaperSx,
+    pageDividerSx,
+    pageHeaderStackSx,
+    pageHeaderTitleSx,
+    pageRootSx,
+    pageSectionPaperSx,
+} from "../../components/page/pageStyles";
 
 
 interface FormValues {
@@ -14,6 +22,7 @@ interface FormValues {
 
 export default function BookSlot(){
 
+    const [userStatus, setUserStatus] = useState<UserSlotStatus | null>(null);    
     const [slot, setSlot] = useState<SlotResponse | null>(null);
     const [ employees, setEmployees] = useState<EmployeeResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -58,13 +67,15 @@ export default function BookSlot(){
     
       const fetchData = async () => {
         try {
-          const [slotRes, employeeRes] = await Promise.all([
+          const [slotRes, employeeRes, myStatus] = await Promise.all([
             getSlotDetail(Number(slotId)),
             getInterestedEmployees(Number(slotId)),
+            getMyStatus(Number(slotId)),
           ]);
     
           setSlot(slotRes);
           setEmployees(employeeRes);
+          setUserStatus(myStatus);
         } catch {
           toast.error("Failed to load slot details");
         } finally {
@@ -77,96 +88,187 @@ export default function BookSlot(){
 
     if (loading) {
         return (
-        <Box sx={{ textAlign: "center", mt: 5 }}>
-            <CircularProgress />
+        <Box sx={pageRootSx}>
+            <Paper
+                variant="outlined"
+                sx={{
+                    ...pageContentPaperSx,
+                    p: { xs: 4, sm: 6 },
+                    display: "flex",
+                    justifyContent: "center",
+                }}
+            >
+                <CircularProgress />
+            </Paper>
         </Box>
         );
     }
 
 
-    if (!slot) return null;
+    if (!slot) {
+        return (
+            <Box sx={pageRootSx}>
+                <Paper variant="outlined" sx={{ ...pageContentPaperSx, p: { xs: 2, sm: 2.5 } }}>
+                    <Typography color="text.secondary">Slot details not found.</Typography>
+                </Paper>
+            </Box>
+        );
+    }
+
+    const registrationBlocked =
+        userStatus?.isOnTravel === true ||
+        userStatus?.isLimitReached === true ||
+        userStatus?.isRegistered === true;
 
     return(
-        <Container maxWidth="lg">
-            <Button sx={{mb:2}} variant="outlined" onClick={() => navigate(-1)}>
-                Back
-            </Button>
-            <Typography variant="h5" mb={3}>
-                Register interest in slot
-            </Typography>
+        <Box sx={pageRootSx}>
+            <Paper variant="outlined" sx={pageSectionPaperSx}>
+                <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1.5}
+                    justifyContent="space-between"
+                    alignItems={{ xs: "flex-start", sm: "center" }}
+                    sx={pageHeaderStackSx}
+                >
+                    <Stack spacing={0.25}>
+                        <Typography variant="h5" sx={pageHeaderTitleSx}>
+                            Register Interest In Slot
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Confirm your participation and optionally include teammates.
+                        </Typography>
+                    </Stack>
 
-            <Card sx={{mb:2}}>
-                <CardContent>
-                    <Stack
-                    direction="column"
-                    justifyContent="center"
-                    alignItems="flex-start"
-                    gap={1}
-              >
+                    <Button variant="outlined" onClick={() => navigate(-1)}>
+                        Back
+                    </Button>
+                </Stack>    
+                 <Divider sx={pageDividerSx} />
+                 <Stack spacing={0.75}>
+                    <Typography fontWeight={600}>Game: {slot.gameName}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Timings: {slot.startTime} - {slot.endTime}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Max players: {slot.maxPlayers}
+                    </Typography>
+                </Stack>
+            </Paper>
 
-                    <Typography fontWeight={600}>
-                    Game: {slot.gameName}
+            {/* <Paper variant="outlined" sx={pageSectionPaperSx}>
+                <Stack spacing={0.75}>
+                    <Typography fontWeight={600}>Game: {slot.gameName}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Timings: {slot.startTime} - {slot.endTime}
                     </Typography>
-                    <Typography variant="body2" >
-                    Timings: {slot.startTime} - {slot.endTime}
+                    <Typography variant="body2" color="text.secondary">
+                        Max players: {slot.maxPlayers}
                     </Typography>
-                    <Typography variant="body2" >
-                    Max players: {slot.maxPlayers}
-                    </Typography>
-              </Stack>
-                    </CardContent>
-            </Card>
+                </Stack>
+            </Paper> */}
 
             <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                                <Typography variant="subtitle1" mt={2} mb={1}>
-                                Select Employees(Optional)
-                                </Typography>
-                                
-                                <Controller
-                                name="employees"
-                                control={control}
-                                defaultValue={[]}
-                                render={({ field }) => (
-                                    <FormGroup>
-                                    {employees?.map((emp) => (
-                                        <FormControlLabel
-                                        key={emp.id}
-                                        control={
-                                            <Checkbox
-                                            checked={field.value?.includes(emp.id)}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                field.onChange([...field.value, emp.id]);
-                                                } else {
-                                                field.onChange(
-                                                    field.value.filter((id: number) => id !== emp.id)
-                                                );
-                                                }
-                                            }}
-                                            />
-                                        }
-                                        label={`${emp.firstName} ${emp.lastName} (${emp.designation})`}
-                                        />
-                                    ))}
-                                    </FormGroup>
-                                )}
-                                />
-                                
-                                {errors.employees && (
-                                <Typography color="error" variant="body2">
-                                    {errors.employees.message}
-                                </Typography>
-                                )}
+                <Stack spacing={2}>
+                    {userStatus?.isOnTravel && (
+                        <Alert severity="error">You are on a travel plan and cannot register for this slot.</Alert>
+                    )}
+                    {userStatus?.isLimitReached && (
+                        <Alert severity="error">You have reached the daily booking limit.</Alert>
+                    )}
+                    {userStatus?.isRegistered && (
+                        <Alert severity="error">You have already registered for this slot.</Alert>
+                    )}
 
-                                
-                        </CardContent>
-                    </Card>
-                    <Button variant="contained" type="submit">
-                        Register slot
-                    </Button>
-                </form>
-        </Container>
+                    <Paper variant="outlined" sx={pageSectionPaperSx}>
+                        <Typography variant="subtitle1" mb={1}>
+                            Select Employees (Optional)
+                        </Typography>
+
+                        <Controller
+                            name="employees"
+                            control={control}
+                            defaultValue={[]}
+                            render={({ field }) => (
+                                <Box
+                                    sx={{
+                                        border: 1,
+                                        borderColor: "divider",
+                                        borderRadius: 1,
+                                        p: 1,
+                                        maxHeight: 260,
+                                        overflowY: "auto",
+                                    }}
+                                >
+                                    <FormGroup>
+                                        {employees?.map((emp) => {
+                                            const isUnavailable =
+                                                emp.isOnTravel || emp.isLimitReached || emp.isAlreadyRegistered;
+
+                                            return (
+                                                <Stack
+                                                    key={emp.id}
+                                                    direction="column"
+                                                    sx={{
+                                                        border: "1px solid",
+                                                        borderColor: isUnavailable ? "error.light" : "transparent",
+                                                        borderRadius: 1,
+                                                        px: 1,
+                                                        py: 0.5,
+                                                        mb: 0.5,
+                                                        backgroundColor: isUnavailable ? "rgba(211, 47, 47, 0.08)" : "transparent",
+                                                        opacity: isUnavailable ? 0.7 : 1,
+                                                    }}
+                                                >
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                checked={field.value?.includes(emp.id)}
+                                                                disabled={isUnavailable}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        field.onChange([...field.value, emp.id]);
+                                                                    } else {
+                                                                        field.onChange(
+                                                                            field.value.filter((id: number) => id !== emp.id)
+                                                                        );
+                                                                    }
+                                                                }}
+                                                            />
+                                                        }
+                                                        label={`${emp.firstName} ${emp.lastName} (${emp.designation})`}
+                                                    />
+
+                                                    {isUnavailable && (
+                                                        <Typography variant="caption" color="error">
+                                                            {emp.isOnTravel
+                                                                ? "On travel"
+                                                                : emp.isLimitReached
+                                                                    ? "Daily booking limit reached"
+                                                                    : "Already registered for this slot"}
+                                                        </Typography>
+                                                    )}
+                                                </Stack>
+                                            );
+                                        })}
+                                    </FormGroup>
+                                </Box>
+                            )}
+                        />
+
+                        {errors.employees && (
+                            <Typography color="error" variant="body2">
+                                {errors.employees.message}
+                            </Typography>
+                        )}
+                    </Paper>
+
+                    <Box>
+                        <Button variant="contained" type="submit" disabled={registrationBlocked}>
+                            Register slot
+                        </Button>
+                    </Box>
+                </Stack>
+            </form>
+        </Box>
     )
 }

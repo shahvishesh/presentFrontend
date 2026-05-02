@@ -1,10 +1,10 @@
 import type { Dayjs } from "dayjs";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getEmployees, type EmployeeResponse } from "../../api/employee.api";
+import { getAvailableUserEmployees, getEmployees, type EmployeeResponse } from "../../api/employee.api";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "react-toastify";
-import { getTravelPlanDetailByid, updateTravelPlan, type UpdateTravelPlanRequest } from "../../api/travel.api";
+import { getTravelPlanDetailByid, updateTravelPlan, type EmployeeConflict, type UpdateTravelPlanRequest } from "../../api/travel.api";
 import dayjs from "dayjs";
 import { Box, Button, Checkbox, CircularProgress, Divider, FormControlLabel, FormGroup, Grid, Paper, Stack, TextField, Typography } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
@@ -17,6 +17,7 @@ import {
     pageHeaderTitleSx,
     pageRootSx,
 } from "../../components/page/pageStyles";
+import axios from "axios";
 
 interface EditFormValues {
   title: string;
@@ -35,7 +36,7 @@ export default function UpdateTravelPlan(){
     const [employees, setEmployees] = useState<EmployeeResponse []|null>(null);
     //const [travelPlan, setTravelPlan] = useState<TravelPlanDetail>();
     const [loading, setLoading] = useState(true);
-
+        const [conflicts, setConflicts] = useState<EmployeeConflict[]>([]);
     const today = dayjs().startOf("day");
 
 
@@ -52,6 +53,9 @@ export default function UpdateTravelPlan(){
         const startDateValue = watch("startDate");
         const endDateValue = watch("endDate");
 
+    useEffect(() => {
+        setConflicts([]);
+    }, [startDateValue, endDateValue]);
 
     // useEffect(() => {
     //      getEmployees()
@@ -66,7 +70,7 @@ export default function UpdateTravelPlan(){
                try {
                  const [travelRes, employeeRes] = await Promise.all([
                    getTravelPlanDetailByid(Number(travelPlanId)),
-                   getEmployees(),
+                   getAvailableUserEmployees(),
                  ]);
            
                  setEmployees(employeeRes);
@@ -122,9 +126,26 @@ export default function UpdateTravelPlan(){
       
             toast.success("Travel plan updated");
             navigate(`/dashboard/travel/list`, { replace: true });
-          } catch {
-            toast.error("Failed to update travel plan");
-          }
+          } catch (error: unknown) {
+                if (axios.isAxiosError(error)) {
+
+                    if (error.response?.status === 409) {
+                        const errorData = error.response.data as {
+                            message: string;
+                            status: number;
+                            data: EmployeeConflict[];
+                        };
+
+                        setConflicts(errorData.data);
+                        toast.error(errorData.message);
+                    } else {
+                        toast.error(error.response?.data?.message || "API Error");
+                    }
+
+                } else {
+                    toast.error("Something went wrong");
+                }
+            }
     };
 
     if (loading) {
@@ -263,6 +284,7 @@ export default function UpdateTravelPlan(){
                                         <DatePicker
                                             label="Select start date"
                                             value={field.value}
+                                            format="DD/MM/YYYY"
                                             minDate={today}
                                             maxDate={endDateValue ?? undefined}
                                             onChange={(newValue) => {
@@ -303,6 +325,7 @@ export default function UpdateTravelPlan(){
                                         <DatePicker
                                             label="Select end date"
                                             value={field.value}
+                                            format="DD/MM/YYYY"
                                             minDate={startDateValue ?? undefined}
                                             onChange={(newValue) => {
                                                 field.onChange(newValue);
@@ -352,6 +375,12 @@ export default function UpdateTravelPlan(){
                                 <Typography variant="h6" sx={{ mb: 1 }}>
                                     Select Employees
                                 </Typography>
+                                {conflicts.length > 0 && (
+                                    <Typography color="error" variant="body2" mb={1}>
+                                        {conflicts.length} employee{conflicts.length > 1 ? "s are" : " is"} unavailable.
+                                        {conflicts.map(c => c.employeeName).join(", ")}
+                                    </Typography>
+                                )}
                             </Grid>
 
                             <Grid size={{ xs: 12 }}>
@@ -372,26 +401,53 @@ export default function UpdateTravelPlan(){
                                             }}
                                         >
                                             <FormGroup>
-                                                {employees?.map((emp) => (
-                                                    <FormControlLabel
-                                                        key={emp.id}
-                                                        control={
-                                                            <Checkbox
-                                                                checked={field.value?.includes(emp.id)}
-                                                                onChange={(e) => {
-                                                                    if (e.target.checked) {
-                                                                        field.onChange([...field.value, emp.id]);
-                                                                    } else {
-                                                                        field.onChange(
-                                                                            field.value.filter((id: number) => id !== emp.id)
-                                                                        );
-                                                                    }
-                                                                }}
+                                                {employees?.map((emp) => {
+                                                    const conflict = conflicts.find(c => c.employeeId === emp.id);
+
+                                                    return (
+                                                        <Stack
+                                                            key={emp.id}
+                                                            direction="column"
+                                                            sx={{
+                                                                border: conflict ? "1px solid red" : "1px solid transparent",
+                                                                borderRadius: 1,
+                                                                px: 1,
+                                                                py: 0.5,
+                                                                mb: 0.5,
+                                                                backgroundColor: conflict ? "#ffe6e6" : "transparent"
+                                                            }}
+                                                        >
+                                                            <FormControlLabel
+                                                                control={
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(emp.id)}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.checked) {
+                                                                                field.onChange([...field.value, emp.id]);
+                                                                            } else {
+                                                                                field.onChange(
+                                                                                    field.value.filter((id: number) => id !== emp.id)
+                                                                                );
+
+                                                                                // remove conflict when unchecked
+                                                                                setConflicts(prev =>
+                                                                                    prev.filter(c => c.employeeId !== emp.id)
+                                                                                );
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                }
+                                                                label={`${emp.firstName} ${emp.lastName} (${emp.designation})`}
                                                             />
-                                                        }
-                                                        label={`${emp.firstName} ${emp.lastName} (${emp.designation})`}
-                                                    />
-                                                ))}
+
+                                                            {conflict && (
+                                                                <Typography variant="caption" color="error">
+                                                                    Booked: {conflict.bookedFrom} → {conflict.bookedTo}
+                                                                </Typography>
+                                                            )}
+                                                        </Stack>
+                                                    );
+                                                })}
                                             </FormGroup>
                                         </Box>
                                     )}

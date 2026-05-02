@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Box, Button, Divider, Grid, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, Divider, Grid, IconButton, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { openDocumentFileE } from "../../api/file.api";
 import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import type { ErrorResponse } from "../../utils/commonInterface";
-import { getDocumentTypes, getEmployeeDocuments, uploadTravelDocument, type DocumentType, type TravelDocumentResponse, type UploadTravelDocumentRequest } from "../../api/document.api";
-import { useUser } from "../../context/UseUser";
+import { deleteDocument, getDocumentTypes, getEmployeeDocuments, updateTravelDocument, uploadTravelDocument, type DocumentType, type TravelDocumentResponse, type UploadTravelDocumentRequest } from "../../api/document.api";
+import { useUser } from "../../context/useUser";
 import {
     dataTableActionsStackSx,
     dataTableContainerSx,
@@ -24,14 +27,24 @@ import {
     pageRootSx,
 } from "../../components/page/pageStyles";
 import { getTravelPlanByid, type TravelPlanResponse } from "../../api/travel.api";
+import UpdateDocumentModal from "../document/UpdateDocumentModal";
 
 export default function Document(){
 
     const[documents, setDocuments] = useState<TravelDocumentResponse[]>([]);
     const [documentTypes, setDocumentTypes] = useState<DocumentType[]>();
     const { user } = useUser();
+
+    //
+    const [openUpdate, setOpenUpdate] = useState(false);
+    const [selectedDoc, setSelectedDoc] = useState<TravelDocumentResponse | null>(null);
+    const [updateFile, setUpdateFile] = useState<File | null>(null);
+    const [updateDocType, setUpdateDocType] = useState("");
+
+    //
     
     const { travelPlanId } = useParams();
+    const travelPlanIdNum = Number(travelPlanId);
         const [travelPlan, setTravelPlan] = useState<TravelPlanResponse | null>(null);
 
     //
@@ -60,10 +73,21 @@ export default function Document(){
                 toast.error("Please upload document");
                 return;
             }
+            if (!Number.isFinite(travelPlanIdNum)) {
+                toast.error("Invalid route details");
+                return;
+            }
+            if (!Number.isFinite(user?.employeeId ?? NaN)) {
+                toast.error("Employee details not found");
+                return;
+            }
             try {
                 setLoading(true);
                 data.employeeId = user?.employeeId;
-                await uploadTravelDocument(Number(travelPlanId), data, documentFile)
+                await uploadTravelDocument(travelPlanIdNum, data, documentFile)
+
+                const refreshed = await getEmployeeDocuments(travelPlanIdNum);
+                setDocuments(refreshed);
 
                 toast.success("Document uploaded successfully");
                 reset();
@@ -90,21 +114,97 @@ export default function Document(){
 
     //
     useEffect(() => {
-         getEmployeeDocuments(Number(travelPlanId))
+                 if (!Number.isFinite(travelPlanIdNum)) return;
+
+                 getEmployeeDocuments(travelPlanIdNum)
             .then((data) => setDocuments(data))
             .catch(() => toast.error("Failed to load documents"))
-    }, []);
+        }, [travelPlanIdNum]);
 
         useEffect(() => {
-                    const travelIdNum = Number(travelPlanId);
-                    if (!Number.isFinite(travelIdNum)) return;
+                                        if (!Number.isFinite(travelPlanIdNum)) return;
                 
-                    Promise.all([getTravelPlanByid(travelIdNum)])
+                                        Promise.all([getTravelPlanByid(travelPlanIdNum)])
                       .then(([travelPlan]) => {
                         setTravelPlan(travelPlan);
                       })
                       .catch(() => toast.error("Failed to load travel plan"));
-                  }, [travelPlanId]);
+                                    }, [travelPlanIdNum]);
+
+    const handleDelete = async (travelDocumentId: number) => {
+              const confirmDelete = window.confirm("Are you sure you want to delete this document?");
+              if (!confirmDelete) return;
+            
+              try {
+                await deleteDocument(travelDocumentId);
+            
+                setDocuments((prev) => prev.filter((doc) => doc.travelDocumentId !== travelDocumentId));
+            
+                toast.success("Travel document deleted");
+              } catch {
+                toast.error("Failed to delete document");
+              }
+    };
+
+    //
+                const handleOpenUpdate = (doc: TravelDocumentResponse) => {
+                setSelectedDoc(doc);
+                setUpdateFile(null);
+                setUpdateDocType(String(doc.documentTypeId)); // 👈 important
+                setOpenUpdate(true);
+                };
+        
+                const handleUpdateFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                if (e.target.files && e.target.files[0]) {
+                    setUpdateFile(e.target.files[0]);
+                }
+                };
+        
+                const handleUpdateSubmit = async () => {
+          if (!selectedDoc) return;
+                    if (!updateDocType) {
+                        toast.error("Document type is required");
+                        return;
+                    }
+                    if (!Number.isFinite(travelPlanIdNum)) {
+                        toast.error("Invalid route details");
+                        return;
+                    }
+        
+          try {
+            setLoading(true);
+        
+            await updateTravelDocument(
+              selectedDoc.travelDocumentId,
+              {
+                documentTypeId: Number(updateDocType)
+              },
+              updateFile || undefined
+            );
+        
+            toast.success("Document updated");
+        
+            setOpenUpdate(false);
+            setUpdateFile(null);
+        setSelectedDoc(null);
+        
+            // 🔁 refresh list
+            const refreshed = await getEmployeeDocuments(travelPlanIdNum)
+            setDocuments(refreshed);
+        
+          } catch (error: unknown) {
+            if (axios.isAxiosError<ErrorResponse>(error)) {
+              const message =
+                error.response?.data.message || "Failed to update document";
+              toast.error(message);
+            } else {
+              toast.error("Something went wrong");
+            }
+          } finally {
+            setLoading(false);
+          }
+        };
+                //
 
     return(
         <Box sx={pageRootSx}>
@@ -264,13 +364,38 @@ export default function Document(){
 
                                         <TableCell align="center">
                                             <Stack direction="row" spacing={1} sx={dataTableActionsStackSx}>
-                                                <Button
-                                                    onClick={() => openDocumentFileE(doc.travelDocumentId)}
-                                                    variant="contained"
-                                                    size="small"
-                                                >
-                                                    View Document
-                                                </Button>
+                                                <Tooltip title="View Document">
+                                                    <IconButton
+                                                        color="primary"
+                                                        size="small"
+                                                        onClick={() => openDocumentFileE(doc.travelDocumentId)}
+                                                    >
+                                                        <VisibilityIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                                {/* {doc.uploadedByRole === "EMPLOYEE" && (
+                                                    <> */}
+                                                        <Tooltip title="Delete">
+                                                            <IconButton
+                                                                color="error"
+                                                                size="small"
+                                                                onClick={() => handleDelete(doc.travelDocumentId)}
+                                                            >
+                                                                <DeleteIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+
+                                                        <Tooltip title="Update">
+                                                            <IconButton
+                                                                color="secondary"
+                                                                size="small"
+                                                                onClick={() => handleOpenUpdate(doc)}
+                                                            >
+                                                                <EditIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    {/* </>
+                                                )} */}
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -287,6 +412,17 @@ export default function Document(){
                         </Table>
                     </TableContainer>
                 </Paper>
+                <UpdateDocumentModal
+                  open={openUpdate}
+                  onClose={() => setOpenUpdate(false)}
+                  documentTypes={documentTypes}
+                  selectedDoc={selectedDoc}
+                  updateFile={updateFile}
+                  updateDocType={updateDocType}
+                  onDocTypeChange={setUpdateDocType}
+                  onFileChange={handleUpdateFileChange}
+                  onSubmit={handleUpdateSubmit}
+                />
             </Box>
     )
 }

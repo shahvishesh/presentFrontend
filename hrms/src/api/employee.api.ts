@@ -7,12 +7,21 @@ export interface EmployeeResponse{
     designation: string;
     department: string;
     managerId: number | null;
+    isOnTravel: boolean;
+    isLimitReached: boolean;
+    isAlreadyRegistered: boolean;
 }
 
 export const getEmployees = async (): Promise<EmployeeResponse []> => {
     const res = await axiosInstance.get<EmployeeResponse []>("/employee");
     return res.data;
 }
+
+export const getAvailableUserEmployees = async ():Promise<EmployeeResponse[]> => {
+    const res = await axiosInstance.get<EmployeeResponse[]>("/employee/users");
+    return res.data;
+}
+
 
 export const getInterestedEmployees = async (gameSlotId: number): Promise<EmployeeResponse []> => {
     const res = await axiosInstance.get<EmployeeResponse []>(`/game-interest/${gameSlotId}/employees`);
@@ -22,11 +31,6 @@ export const getInterestedEmployees = async (gameSlotId: number): Promise<Employ
 export const getEmployeeById = async (employeeId: number): Promise<EmployeeResponse> => {
     const res = await axiosInstance.get<EmployeeResponse>(`/employee/${employeeId}`);
     return res.data;
-}
-
-export const getAvailableEmploye = async ():Promise<EmployeeDetailResponse[]> => {
- const res = await axiosInstance.get<EmployeeDetailResponse[]>("/employee/available-employees");
- return res.data;
 }
 
 export const getEmployeeDetail = async (): Promise<EmployeeResponse> => {
@@ -76,10 +80,17 @@ export type EmployeeDetailResponse = {
     dateOfBirth: string;
     departmentName: string;
     managerName?: string;
+    profileImageUrl?: string;
+
 }
 
 export const getEmployeeProfile = async ():Promise<EmployeeDetailResponse> => {
     const res = await axiosInstance.get<EmployeeDetailResponse>("/employee/profile");
+    return res.data;
+}
+
+export const getAvailableEmploye = async ():Promise<EmployeeDetailResponse[]> => {
+    const res = await axiosInstance.get<EmployeeDetailResponse[]>("/employee/available-employees");
     return res.data;
 }
 
@@ -130,3 +141,28 @@ export const deleteEmployeeById = async (employeeId: number) => {
     await axiosInstance.delete(`/employee/delete/${employeeId}`);
     
 }
+
+export type ProfileImageResponse = {
+  imageUrl: string;
+};
+
+export const uploadProfileImage = async (
+  employeeId: number,
+  file: File
+): Promise<ProfileImageResponse> => {
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axiosInstance.post<ProfileImageResponse>(
+    `/employee/${employeeId}/profile-image`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return res.data;
+};

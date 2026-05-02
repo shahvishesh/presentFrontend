@@ -17,6 +17,19 @@ interface RegisterRequest {
 
 }
 
+interface ForgotPasswordRequest {
+  email: string;
+}
+
+interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+interface ValidateResetTokenResponse {
+  valid: boolean;
+}
+
 interface SignupResponse {
   username: string;
   email: string;
@@ -35,6 +48,21 @@ export const signup = async (data: RegisterRequest): Promise<SignupResponse> => 
 export const getCurrentUser = async (): Promise<CurrentUser> => {
   const res = await axiosInstance.get<CurrentUser>("/auth/me");
   return res.data;
+};
+
+export const requestPasswordReset = async (data: ForgotPasswordRequest): Promise<void> => {
+  await axiosInstance.post("/auth/forgot-password", data);
+};
+
+export const validateResetToken = async (token: string): Promise<boolean> => {
+  const response = await axiosInstance.get<ValidateResetTokenResponse>("/auth/validate-reset-token", {
+    params: { token },
+  });
+  return response.data.valid;
+};
+
+export const resetPassword = async (data: ResetPasswordRequest): Promise<void> => {
+  await axiosInstance.post("/auth/reset-password", data);
 };
 
 

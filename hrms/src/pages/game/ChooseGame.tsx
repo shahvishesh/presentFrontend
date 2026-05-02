@@ -1,35 +1,36 @@
-import { useEffect, useState } from "react";
-import { getGameType, type GameTypeResponse } from "../../api/slot.api";
+import { useState } from "react";
+import { cancelRegistrationOrBooking, getActiveSlotRegistrations } from "../../api/slot.api";
 import { toast } from "react-toastify";
-import { Button } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import GameType from "./game-tabs/GameType";
 
 export default function ChooseGame(){
+    const [refreshKey, setRefreshKey] = useState(0);
 
-    const[games, setGames] = useState<GameTypeResponse[]>([]);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        getGameType()
-                .then((data) => setGames(data))
-                .catch(() => toast.error("Error loading games"));
-    }, []);
+    const handleCancel = async (slotId: number) => {
+          const confirmDelete = window.confirm("Are you sure you want to cancel this registraion?");
+          if (!confirmDelete) return;
+        
+          try {
+            await cancelRegistrationOrBooking(slotId);
+        
+            //setSlotRegistrations((prev) => prev.filter((slot) => slot.slotId !== slotId));
+            setRefreshKey((prev) => prev + 1);
+            toast.success("Registration cancelled");
+          } catch {
+            toast.error("Failed to cancel registration");
+          }
+        };
+    
 
     return(
         <>
-             <Button sx={{mb: 5, display:"block"}} variant="outlined" onClick={() =>navigate(-1)}>
-                Back
-            </Button>
-            {games.map((game) => (
-                <Button 
-                    variant="contained"
-                    sx={{mx:2}}
-                    key={game.id}
-                    onClick={() => navigate(`/dashboard/game/${game.id}/registrations`)}    
-                >
-                    {game.gameName}
-                </Button>
-            ))}
+            <GameType
+                fetchSlots={getActiveSlotRegistrations}
+                buttonText="Cancel Registration"
+                onAction={(slot) => handleCancel(slot.slotId)}
+                refreshKey={refreshKey}
+                headerSubtitle="View your active registrations and cancel them if needed."
+            />
         </>
     );
 }

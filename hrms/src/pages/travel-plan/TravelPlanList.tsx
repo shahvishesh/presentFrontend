@@ -7,6 +7,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import { Tooltip } from "@mui/material";
+import { formatDateToDDMMYYYY } from "../../utils/dateFormat";
 
 export default function TravelPlanList(){
     const navigate = useNavigate();
@@ -55,7 +56,7 @@ export default function TravelPlanList(){
                     {travelPlans?.map((travel) => (
                     <TableRow key={travel.travelPlanId}>
                         <TableCell>{travel.title}</TableCell>
-                        <TableCell>{travel.startDate} - {travel.endDate}</TableCell>
+                        <TableCell>{formatDateToDDMMYYYY(travel.startDate)} - {formatDateToDDMMYYYY(travel.endDate)}</TableCell>
                         <TableCell>{travel.status}</TableCell>
                         <TableCell>{travel.sourceLocation}</TableCell>
                         <TableCell>{travel.destinationLocation}</TableCell>

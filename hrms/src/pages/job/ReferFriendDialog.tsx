@@ -1,14 +1,15 @@
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Stack,
   TextField,
   Typography,
-  CircularProgress,
 } from "@mui/material";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -84,11 +85,30 @@ export default function ReferFriendDialog({
   };
  
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Refer a Friend</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="sm"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 2,
+            overflow: "hidden",
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ pb: 0.5 }}>
+        <Stack spacing={0.25}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            Refer a Friend
+          </Typography>
+        </Stack>
+      </DialogTitle>
  
-      <DialogContent>
-        <DialogContentText>
+      <DialogContent sx={{ pt: 1.5 }}>
+        <DialogContentText sx={{ mb: 1.5 }}>
           Enter your friend's details below
         </DialogContentText>
  
@@ -96,18 +116,19 @@ export default function ReferFriendDialog({
           <TextField
             fullWidth
             label="Name"
-            margin="normal"
+            size="small"
             {...register("friendName", {
               required: "Name is required",
             })}
             error={!!errors.friendName}
             helperText={errors.friendName?.message}
+            sx={{ mb: 1.5 }}
           />
  
           <TextField
             fullWidth
             label="Email"
-            margin="normal"
+            size="small"
             type="email"
             {...register("friendEmail", {
               required: "Email is required",
@@ -118,6 +139,7 @@ export default function ReferFriendDialog({
             })}
             error={!!errors.friendEmail}
             helperText={errors.friendEmail?.message}
+            sx={{ mb: 1.5 }}
           />
  
           <TextField
@@ -125,7 +147,7 @@ export default function ReferFriendDialog({
             label="Comment"
             multiline
             rows={3}
-            margin="normal"
+            size="small"
             {...register("comment")}
           />
  
@@ -172,7 +194,7 @@ export default function ReferFriendDialog({
         </form>
       </DialogContent>
  
-      <DialogActions>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={handleClose} disabled={loading}>
           Cancel
         </Button>
@@ -182,7 +204,7 @@ export default function ReferFriendDialog({
           form="referral-form"
           variant="contained"
           disabled={loading}
-          startIcon={loading && <CircularProgress size={16} />}
+          startIcon={loading ? <CircularProgress size={16} /> : undefined}
         >
           Refer
         </Button>

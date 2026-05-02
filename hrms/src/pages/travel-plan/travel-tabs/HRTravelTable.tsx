@@ -22,6 +22,7 @@ import {
     dataTableHeadRowSx,
     dataTablePrimaryCellSx,
 } from "../../../components/table/tableStyles";
+import { formatDateToDDMMYYYY } from "../../../utils/dateFormat";
 
 interface Props {
   travelPlans: TravelPlanResponse[];
@@ -68,7 +69,7 @@ export default function HRTravelTable({ travelPlans, onDelete }: Props) {
                             >
                                 <TableCell sx={dataTablePrimaryCellSx}>{travel.title}</TableCell>
                                 <TableCell>
-                                    {travel.startDate} - {travel.endDate}
+                                    {formatDateToDDMMYYYY(travel.startDate)} - {formatDateToDDMMYYYY(travel.endDate)}
                                 </TableCell>
                                 <TableCell sx={{ color: "text.secondary" }}>
                                     {travel.status}

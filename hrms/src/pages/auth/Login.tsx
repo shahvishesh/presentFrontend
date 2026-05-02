@@ -9,10 +9,10 @@ import {
 import { getCurrentUser, login } from "../../api/auth.api"
 import { toast } from "react-toastify"
 import { useForm } from "react-hook-form";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { useUser } from "../../context/useUser";
+import { getApiErrorMessage } from "../../utils/apiError";
 import {
     pageContentPaperSx,
     pageHeaderPaperSx,
@@ -24,12 +24,6 @@ import {
 interface LoginRequest {
     username: string;
     password: string;
-}
-
-interface ErrorResponse{
-    message: string;
-    code: number;
-    timestamp: string;
 }
 
 
@@ -61,28 +55,24 @@ export default function Login(){
                 toast.success("Login successful");
                 navigate("/dashboard");
 
-           }catch(error: unknown){
-                if(axios.isAxiosError<ErrorResponse>(error)){
-                const message = error.response?.data.message || "Login failed";
-                toast.error(message);
-                }else{
-                    toast.error("Something went wrong");
-                }
-                    
+         }catch(error: unknown){
+             toast.error(getApiErrorMessage(error, "Login failed"));
            }
     }
 
     return(
         <Box
             sx={{
-                ...pageRootSx,
-                minHeight: "100vh",
+                position: "fixed",
+                inset: 0,
+                boxSizing: "border-box",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                overflow: "hidden",
             }}
         >
-            <Box sx={{ width: "100%", maxWidth: 560 }}>
+            <Box sx={{ ...pageRootSx, width: "100%", maxWidth: 560, boxSizing: "border-box" }}>
                 <Paper variant="outlined" sx={pageHeaderPaperSx}>
                     <Stack spacing={1} alignItems="flex-start" sx={pageHeaderStackSx}>
                         <Stack spacing={0.25}>
@@ -96,7 +86,7 @@ export default function Login(){
                     </Stack>
                 </Paper>
 
-                <Paper variant="outlined" sx={pageContentPaperSx}>
+                <Paper variant="outlined" sx={{ ...pageContentPaperSx, mb: 0 }}>
                     <Box
                         component="form"
                         onSubmit={handleSubmit(onSubmit)}
@@ -122,6 +112,17 @@ export default function Login(){
                                 error={!!errors.password}
                                 helperText={errors.password?.message}
                             />
+
+                            <Stack direction="row" justifyContent="flex-end">
+                                <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={() => navigate("/forgot-password")}
+                                    sx={{ px: 0 }}
+                                >
+                                    Forgot password?
+                                </Button>
+                            </Stack>
 
                             <Button
                                 variant="contained"

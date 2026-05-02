@@ -41,6 +41,7 @@ export type EmployeeExpenseResponse = {
     expenseStatus: string;
     amount: number;
     description: string;
+    categoryId: number;
     proofs: ExpenseProof[]
 }
 
@@ -149,3 +150,33 @@ export const getExployeeExpensesByEmployeeIdAndStatusByEmployee = async (travelP
     );
     return res.data;
 }
+
+export type UpdateExpenseRequest = {
+  amount: number;
+  description: string;
+  categoryId: number;
+};
+
+export const updateExpense = async (
+  expenseId: number,
+  data: UpdateExpenseRequest,
+  file?: File
+) => {
+  const formData = new FormData();
+
+  formData.append(
+    "data",
+    new Blob([JSON.stringify(data)], {
+      type: "application/json",
+    })
+  );
+
+  if (file) {
+    formData.append("file", file);
+  }
+
+  await axiosInstance.put(
+    `/expense/${expenseId}/update`,
+    formData
+  );
+};

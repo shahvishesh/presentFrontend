@@ -288,6 +288,7 @@ export default function UpdateProfile(){
                                         <DatePicker
                                             label="Select date of birth"
                                             value={field.value}
+                                            format="DD/MM/YYYY"
                                             onChange={(newValue) => field.onChange(newValue)}
                                             slotProps={{
                                                 textField: {
@@ -314,6 +315,7 @@ export default function UpdateProfile(){
                                         <DatePicker
                                             label="Select joining date"
                                             value={field.value}
+                                            format="DD/MM/YYYY"
                                             onChange={(newValue) => field.onChange(newValue)}
                                             slotProps={{
                                                 textField: {
